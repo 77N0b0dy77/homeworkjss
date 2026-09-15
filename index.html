@@ -68,7 +68,7 @@
     commentsList.innerHTML = "";
 
     commentsData.forEach((comment, index) => {
-      const likeClass = comment.isLiked ? "like-button active-like" : "like-button";
+      const likeClass = comment.isLiked ? "like-button -active-like" : "like-button";
 
       const commentHTML = `
           <li class="comment" data-index="${index}">
@@ -159,14 +159,3 @@
 </script>
 
 </html>
-
-
-const likeButtons = document.querySelectorAll(".like-button");
-
-likeButtons.forEach(button => {
-button.addEventListener("click", (e) => {
-e.stopPropagation();
-const index = parseInt(button.getAttribute("data-index"), 10);
-
-if (index >= 0 && index < commentsData.length) { const comment=commentsData[index]; comment.isLiked=!comment.isLiked;
-  comment.likes=comment.isLiked ? comment.likes + 1 : comment.likes - 1; renderComments(); } }); });
