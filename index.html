@@ -64,6 +64,11 @@
       .replaceAll("'", "&#039;");
   }
 
+ function createQuotedText(quotedName, quotedText) {
+      // Цитата идёт как часть текста, а не заменяет автора
+      return `> ${quotedName}:\n${quotedText}\n\n`;
+    }
+
   function renderComments() {
     commentsList.innerHTML = "";
 
@@ -107,9 +112,8 @@
         const index = parseInt(li.getAttribute("data-index"), 10);
         const comment = commentsData[index];
 
-        nameInput.value = comment.name;
-        textInput.value = `> ${comment.text}\n\n`;
-        textInput.focus();
+          textInput.value = createQuotedText(comment.name, comment.text);
+          textInput.focus();
       });
     });
 
