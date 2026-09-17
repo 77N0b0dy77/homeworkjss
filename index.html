@@ -60,17 +60,6 @@
     }
 
   function renderComments() {
-
-      // Защита от XSS: заменяем опасные символы через replaceAll
-  function escapeHtml(str) {
-    if (typeof str !== "string") return "";
-    return str
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
     commentsList.innerHTML = "";
 
     commentsData.forEach((comment, index) => {
@@ -137,12 +126,23 @@
     });
   }
 
+      // Защита от XSS: заменяем опасные символы через replaceAll
+  function escapeHtml(str) {
+    if (typeof str !== "string") return "";
+    return str
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
   addButton.addEventListener("click", () => {
     const name = nameInput.value.trim();
     const text = textInput.value.trim();
 
     if (!name || !text) return;
-
+    
     const now = new Date();
     const dateString = formatDate(now);
 
