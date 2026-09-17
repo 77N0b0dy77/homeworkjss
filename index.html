@@ -21,58 +21,67 @@
   </div>
 </body>
 
-<script>
-  const nameInput = document.querySelector(".add-form-name");
-  const textInput = document.querySelector(".add-form-text");
-  const addButton = document.querySelector(".add-form-button");
-  const commentsList = document.querySelector(".comments");
+  <script>
+    const nameInput = document.querySelector(".add-form-name");
+    const textInput = document.querySelector(".add-form-text");
+    const addButton = document.querySelector(".add-form-button");
+    const commentsList = document.querySelector(".comments");
 
-  const commentsData = [
-    {
-      name: "Глеб Фокин",
-      date: "12.02.22 12:18",
-      text: "Это будет первый комментарий на этой странице",
-      likes: 3,
-      isLiked: false
-    },
-    {
-      name: "Варвара Н.",
-      date: "13.02.22 19:22",
-      text: "Мне нравится, как оформлена эта страница! ❤",
-      likes: 75,
-      isLiked: true
+    const commentsData = [
+      {
+        name: "Глеб Фокин",
+        date: "12.02.22 12:18",
+        text: "Это будет первый комментарий на этой странице",
+        likes: 3,
+        isLiked: false
+      },
+      {
+        name: "Варвара Н.",
+        date: "13.02.22 19:22",
+        text: "Мне нравится, как оформлена эта страница! ❤",
+        likes: 75,
+        isLiked: true
+      }
+    ];
+
+    function formatDate(date) {
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      return `${day}.${month}.${year} ${hours}:${minutes}`;
     }
-  ];
 
-  function formatDate(date) {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${day}.${month}.${year} ${hours}:${minutes}`;
-  }
-
-
- function createQuotedText(quotedName, quotedText) {
-      // Цитата идёт как часть текста, а не заменяет автора
+    function createQuotedText(quotedName, quotedText) {
       return `> ${quotedName}:\n${quotedText}\n\n`;
     }
 
-  function renderComments() {
-    commentsList.innerHTML = "";
+    // Защита от XSS: экранируем опасные символы
+    function escapeHtml(str) {
+      if (typeof str !== "string") return "";
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
 
-    commentsData.forEach((comment, index) => {
-      const likeClass = comment.isLiked ? "like-button -active-like" : "like-button";
+    function renderComments() {
+      commentsList.innerHTML = "";
 
-      const commentHTML = `
+      commentsData.forEach((comment, index) => {
+        const likeClass = comment.isLiked ? "like-button -active-like" : "like-button";
+
+        const commentHTML = `
           <li class="comment" data-index="${index}">
             <div class="comment-header">
-              <div>${escapeHtml(comment.name)}</div>
+              <div>${comment.name}</div>
               <div>${comment.date}</div>
             </div>
             <div class="comment-body">
-              <div class="comment-text">${escapeHtml(comment.text)}</div>
+              <div class="comment-text">${comment.text}</div>
             </div>
             <div class="comment-footer">
               <div class="likes">
@@ -83,84 +92,76 @@
           </li>
         `;
 
-      commentsList.insertAdjacentHTML("beforeend", commentHTML);
-    });
+        commentsList.insertAdjacentHTML("beforeend", commentHTML);
+      });
 
-    attachHandlers();
-  }
+      attachHandlers();
+    }
 
-  function attachHandlers() {
+    function attachHandlers() {
+      const comments = commentsList.querySelectorAll(".comment");
 
-    const comments = commentsList.querySelectorAll(".comment");
+      comments.forEach(li => {
+        li.addEventListener("click", (e) => {
+          if (e.target.closest(".like-button")) {
+            return;
+          }
 
-    comments.forEach(li => {
-      li.addEventListener("click", (e) => {
-        if (e.target.closest(".like-button")) {
-          return;
-        }
-
-        const index = parseInt(li.getAttribute("data-index"), 10);
-        const comment = commentsData[index];
+          const index = parseInt(li.getAttribute("data-index"), 10);
+          const comment = commentsData[index];
 
           textInput.value = createQuotedText(comment.name, comment.text);
           textInput.focus();
+        });
       });
-    });
 
-    const likeButtons = document.querySelectorAll(".like-button");
+      const likeButtons = document.querySelectorAll(".like-button");
 
-    likeButtons.forEach(button => {
-      button.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const parentLi = e.currentTarget.closest(".comment");
-        const index = parseInt(parentLi.getAttribute("data-index"), 10);
+      likeButtons.forEach(button => {
+        button.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const parentLi = e.currentTarget.closest(".comment");
+          const index = parseInt(parentLi.getAttribute("data-index"), 10);
 
-        if (index >= 0 && index < commentsData.length) {
-          const comment = commentsData[index];
-          comment.isLiked = !comment.isLiked;
-          comment.likes = comment.isLiked ? comment.likes + 1 : comment.likes - 1;
+          if (index >= 0 && index < commentsData.length) {
+            const comment = commentsData[index];
+            comment.isLiked = !comment.isLiked;
+            comment.likes = comment.isLiked ? comment.likes + 1 : comment.likes - 1;
 
-          renderComments();
-        }
+            renderComments();
+          }
+        });
       });
-    });
-  }
+    }
 
-      // Защита от XSS: заменяем опасные символы через replaceAll
-  function escapeHtml(str) {
-    if (typeof str !== "string") return "";
-    return str
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+    addButton.addEventListener("click", () => {
+      const name = nameInput.value.trim();
+      const text = textInput.value.trim();
 
-  addButton.addEventListener("click", () => {
-    const name = nameInput.value.trim();
-    const text = textInput.value.trim();
+      if (!name || !text) return;
 
-    if (!name || !text) return;
-    
-    const now = new Date();
-    const dateString = formatDate(now);
+      const now = new Date();
+      const dateString = formatDate(now);
 
-    commentsData.push({
-      name,
-      date: dateString,
-      text,
-      likes: 0,
-      isLiked: false
+      
+      const safeName = escapeHtml(name);
+      const safeText = escapeHtml(text);
+
+      commentsData.push({
+        name: safeName,
+        date: dateString,
+        text: safeText,
+        likes: 0,
+        isLiked: false
+      });
+
+      renderComments();
+
+      nameInput.value = "";
+      textInput.value = "";
     });
 
     renderComments();
-
-    nameInput.value = "";
-    textInput.value = "";
-  });
-
-  renderComments();
-</script>
+  </script>
 
 </html>
