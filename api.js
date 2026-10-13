@@ -1,56 +1,59 @@
 const API_BASE = "https://wedev-api.sky.pro/api/v1";
 const PERSONAL_KEY = "ivan-dmitriev";
 
-export async function fetchComments() {
+export function fetchComments() {
   const url = `${API_BASE}/${PERSONAL_KEY}/comments`;
-  
-  const res = await fetch(url);
-  if (!res.ok) {
-    let msg = `Ошибка загрузки: ${res.status}`;
-    try {
-      const data = await res.json();
-      if (data?.error) msg = data.error;
-    } catch (e) {}
-    throw new Error(msg);
-  }
-
-  const data = await res.json();
-  const commentsArray = Array.isArray(data.comments) ? data.comments : [];
-
-  return commentsArray.map(c => ({
-    id: c.id,
-    name: c.author?.name || "Аноним",
-    text: c.text || "",
-    date: formatDateFromISO(c.date),
-    likes: Number(c.likes) || 0,
-    isLiked: Boolean(c.isLiked),
-  }));
+  return fetch(url)
+    .then((res) => {
+      if (!res.ok) {
+        return res.json().then((data) => {
+          const msg = data?.error ? data.error : `Ошибка загрузки: ${res.status}`;
+          throw new Error(msg);
+        }).catch(() => {
+          // Если JSON не распарсился, кидаем ошибку со статусом
+          throw new Error(`Ошибка загрузки: ${res.status}`);
+        });
+      }
+      return res.json();
+    })
+    .then((data) => {
+      const commentsArray = Array.isArray(data.comments) ? data.comments : [];
+      return commentsArray.map((c) => ({
+        id: c.id,
+        name: c.author?.name || "Аноним",
+        text: c.text || "",
+        date: formatDateFromISO(c.date),
+        likes: Number(c.likes) || 0,
+        isLiked: Boolean(c.isLiked),
+      }));
+    });
 }
 
-export async function addCommentToApi(name, text) {
+
+export function addCommentToApi(name, text) {
   const url = `${API_BASE}/${PERSONAL_KEY}/comments`;
-
-
+  // Тело — валидный JSON (обязательно)
   const bodyPayload = JSON.stringify({ name, text });
 
-  const res = await fetch(url, {
+  return fetch(url, {
     method: "POST",
+    // ВАЖНО: никаких headers: { "Content-Type": ... }
     body: bodyPayload,
-  });
-
-  if (!res.ok) {
-    let msg = `Ошибка ${res.status}`;
-    try {
-      const data = await res.json();
-      if (data?.error) msg = data.error;
-    } catch (e) {}
-    throw new Error(msg);
-  }
-
-  return await res.json();
+  })
+    .then((res) => {
+      if (!res.ok) {
+        return res.json().then((data) => {
+          const msg = data?.error || data?.message || `Ошибка ${res.status}`;
+          throw new Error(msg);
+        }).catch(() => {
+          throw new Error(`Ошибка ${res.status}`);
+        });
+      }
+      return res.json();
+    });
 }
 
-export function formatDateFromISO(isoString) {
+function formatDateFromISO(isoString) {
   if (!isoString) return "—";
   const d = new Date(isoString);
   if (isNaN(d.getTime())) return "—";

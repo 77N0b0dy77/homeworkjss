@@ -2,24 +2,8 @@ import { createQuotedText, escapeHtml } from "./utils.js";
 import { renderComments } from "./render-comments.js";
 import { fetchComments, addCommentToApi } from "./api.js";
 
-const initialComments = [
-  {
-    name: "Глеб Фокин",
-    date: "12.02.22 12:18",
-    text: "Это будет первый комментарий на этой странице",
-    likes: 3,
-    isLiked: false,
-  },
-  {
-    name: "Варвара Н.",
-    date: "13.02.22 19:22",
-    text: "Мне нравится, как оформлена эта страница! ❤",
-    likes: 75,
-    isLiked: true,
-  },
-];
-
 let _nameInput, _textInput, _commentsList, _commentsData = [];
+let _addButton;
 
 export function attachCommentClicks() {
   _commentsList.querySelectorAll(".comment").forEach((li) => {
@@ -56,27 +40,45 @@ export function render() {
   attachLikeButtons();
 }
 
-export async function initHandlers(nameInput, textInput, addButton, commentsList) {
+// Отдельная функция для получения списка комментариев — как в ТЗ
+export function loadComments() {
+  // Показываем лоадер перед запросом
+  if (_commentsList) {
+    _commentsList.classList.add("loading");
+  }
+  return fetchComments()
+    .then((comments) => {
+      _commentsData = Array.isArray(comments) ? comments : [];
+      render();
+    })
+    .catch((err) => {
+      console.warn("API недоступен, работаем без комментариев:", err.message);
+      // Даже при ошибке можно отрендерить пустой список, чтобы не было «старых» данных
+      _commentsData = [];
+      render();
+    })
+    .finally(() => {
+      if (_commentsList) {
+        _commentsList.classList.remove("loading");
+      }
+    });
+}
+
+export function initHandlers(nameInput, textInput, addButton, commentsList) {
   _nameInput = nameInput;
   _textInput = textInput;
+  _addButton = addButton;
   _commentsList = commentsList;
 
-  _commentsData = [...initialComments];
-  render();
+  // Сразу показываем лоадер и начинаем загрузку
+  _commentsList.classList.add("loading");
+  _commentsData = []; // изначально пустой массив
 
-  try {
-    const apiComments = await fetchComments();
-    if (Array.isArray(apiComments) && apiComments.length > 0) {
-      _commentsData = apiComments;
-      render();
-    }
-  } catch (err) {
-    console.warn("API недоступен, работаем с локальными комментариями:", err.message);
-  }
+  loadComments(); // отдельный вызов, как требовалось в ТЗ
 
-  addButton.addEventListener("click", async () => {
-    const name = nameInput.value.trim();
-    const text = textInput.value.trim();
+  addButton.addEventListener("click", () => {
+    const name = _nameInput.value.trim();
+    const text = _textInput.value.trim();
 
     if (!name || !text) return;
     if (name.length < 3 || text.length < 3) {
@@ -84,29 +86,34 @@ export async function initHandlers(nameInput, textInput, addButton, commentsList
       return;
     }
 
-    const safeName = escapeHtml(name);
-    const safeText = escapeHtml(text);
+    // Блокируем кнопку, чтобы нельзя было отправить повторно
+    _addButton.disabled = true;
+    _addButton.classList.add("disabled");
 
-    _commentsData.push({
-      name: safeName,
-      text: safeText,
-      date: new Date().toLocaleString("ru-RU"),
-      likes: 0,
-      isLiked: false,
-    });
-    render();
-    nameInput.value = "";
-    textInput.value = "";
+const apiName = name;       // без escapeHtml
+const apiText = text;       // без escapeHtml
 
-    try {
-      await addCommentToApi(safeName, safeText);
-      const fresh = await fetchComments();
-      if (Array.isArray(fresh) && fresh.length > 0) {
-        _commentsData = fresh;
-        render();
-      }
-    } catch (err) {
-      console.error("Не удалось отправить на API:", err.message);
-    }
+const displayName = escapeHtml(name);
+const displayText = escapeHtml(text);
+
+_commentsData.push({
+  name: displayName,
+  text: displayText,
+  date: new Date().toLocaleString("ru-RU"),
+  likes: 0,
+  isLiked: false,
+});
+render();
+
+addCommentToApi(apiName, apiText)
+  .then(() => loadComments())
+  .catch((err) => {
+    console.error("Не удалось отправить на API:", err.message);
+    alert("Комментарий не удалось сохранить на сервере.");
+  })
+  .finally(() => {
+    _addButton.disabled = false;
+    _addButton.classList.remove("disabled");
+  });
   });
 }

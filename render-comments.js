@@ -1,6 +1,13 @@
 export function renderComments(commentsList, commentsData) {
   commentsList.innerHTML = "";
 
+  if (commentsData.length === 0) {
+    commentsList.insertAdjacentHTML("beforeend", `
+      <li class="comment-empty">Комментариев пока нет</li>
+    `);
+    return;
+  }
+
   commentsData.forEach((comment, index) => {
     const likeClass = comment.isLiked ? "like-button -active-like" : "like-button";
 
