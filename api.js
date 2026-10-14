@@ -37,7 +37,6 @@ export function addCommentToApi(name, text) {
 
   return fetch(url, {
     method: "POST",
-    // ВАЖНО: никаких headers: { "Content-Type": ... }
     body: bodyPayload,
   })
     .then((res) => {
