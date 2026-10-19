@@ -7,10 +7,9 @@ export function fetchComments() {
     .then((res) => {
       if (!res.ok) {
         return res.json().then((data) => {
-          const msg = data?.error ? data.error : `Ошибка загрузки: ${res.status}`;
+          const msg = data?.error || data?.message || `Ошибка загрузки: ${res.status}`;
           throw new Error(msg);
         }).catch(() => {
-          // Если JSON не распарсился, кидаем ошибку со статусом
           throw new Error(`Ошибка загрузки: ${res.status}`);
         });
       }
@@ -29,28 +28,36 @@ export function fetchComments() {
     });
 }
 
-
 export function addCommentToApi(name, text) {
   const url = `${API_BASE}/${PERSONAL_KEY}/comments`;
-  // Тело — валидный JSON (обязательно)
   const bodyPayload = JSON.stringify({ name, text });
 
   return fetch(url, {
-    method: "POST",
+    method: 'POST',
     body: bodyPayload,
   })
     .then((res) => {
       if (!res.ok) {
-        return res.json().then((data) => {
-          const msg = data?.error || data?.message || `Ошибка ${res.status}`;
-          throw new Error(msg);
-        }).catch(() => {
-          throw new Error(`Ошибка ${res.status}`);
-        });
+        return res.json()
+          .then((data) => {
+            if (res.status === 500) {
+              throw new Error('__500_INTERNAL_SERVER_ERROR__');
+            } else if (res.status === 400) {
+              throw new Error('__400_BAD_REQUEST__');
+            }
+            throw new Error(data?.error || data?.message || `Ошибка ${res.status}`);
+          })
+          .catch(() => {
+            if (res.status === 500) {
+              throw new Error('__500_INTERNAL_SERVER_ERROR__');
+            }
+            throw new Error(`Ошибка ${res.status}`);
+          });
       }
       return res.json();
     });
 }
+
 
 function formatDateFromISO(isoString) {
   if (!isoString) return "—";

@@ -2,7 +2,10 @@ import { createQuotedText, escapeHtml } from "./utils.js";
 import { renderComments } from "./render-comments.js";
 import { fetchComments, addCommentToApi } from "./api.js";
 
-let _nameInput, _textInput, _commentsList, _commentsData = [];
+let _nameInput,
+  _textInput,
+  _commentsList,
+  _commentsData = [];
 let _addButton;
 
 export function attachCommentClicks() {
@@ -67,81 +70,91 @@ export function initHandlers(nameInput, textInput, addButton, commentsList) {
   _addButton = addButton;
   _commentsList = commentsList;
 
-  // Ищем .add-form (а не wrapper)
-  let formWrapper = _nameInput?.closest('.add-form');
+  let formWrapper = _nameInput?.closest(".add-form");
   if (!formWrapper) {
-    formWrapper = document.querySelector('.add-form');
+    formWrapper = document.querySelector(".add-form");
   }
 
-  const statusBlock = document.querySelector('.add-form-status');
+  const statusBlock = document.querySelector(".add-form-status");
 
-  _commentsList.classList.add('loading');
+  _commentsList.classList.add("loading");
   _commentsData = [];
   loadComments();
 
   addButton.addEventListener('click', () => {
-    const name = _nameInput.value.trim();
-    const text = _textInput.value.trim();
+  const name = _nameInput.value.trim();
+  const text = _textInput.value.trim();
 
-    if (!name || !text) return;
-    if (name.length < 3 || text.length < 3) {
-      alert('Имя и текст должны быть не короче 3 символов.');
-      return;
-    }
+  if (!name || !text) return;
+  if (name.length < 3 || text.length < 3) {
+    alert('Имя и комментарий должны быть не короче 3 символов.');
+    return;
+  }
 
-    _addButton.disabled = true;
-    _addButton.classList.add('disabled');
+  _addButton.disabled = true;
+  _addButton.classList.add('disabled');
 
-    const apiName = name;
-    const apiText = text;
+  const apiName = name;
+  const apiText = text;
 
-    const displayName = escapeHtml(name);
-    const displayText = escapeHtml(text);
+  const savedName = _nameInput.value;
+  const savedText = _textInput.value;
 
-    // Оптимистичное добавление в UI
-    _commentsData.push({
-      name: displayName,
-      text: displayText,
-      date: new Date().toLocaleString('ru-RU'),
-      likes: 0,
-      isLiked: false,
-    });
+  const displayName = escapeHtml(name);
+  const displayText = escapeHtml(text);
+
+  _commentsData.push({
+    name: displayName,
+    text: displayText,
+    date: new Date().toLocaleString('ru-RU'),
+    likes: 0,
+    isLiked: false,
+  });
+  render();
+
+  if (formWrapper) {
+    formWrapper.style.display = 'none';
+  }
+  if (statusBlock) {
+    statusBlock.textContent = 'Комментарий добавляется…';
+    statusBlock.style.display = 'block';
+  }
+
+addCommentToApi(apiName, apiText)
+  .then(() => loadComments())
+  .catch((err) => {
+    console.error('Ошибка отправки:', err);
+
+    _commentsData.pop();
     render();
 
-    // Скрываем форму, показываем статус
-    if (formWrapper) {
-      formWrapper.style.display = 'none';
+    let alertMessage;
+
+    if (err.message === '__400_BAD_REQUEST__') {
+      alertMessage = 'Некорректные данные: проверьте имя и текст комментария.';
+    } else if (err.message === '__500_INTERNAL_SERVER_ERROR__') {
+      alertMessage = 'Сервер сломался, попробуйте позже.';
     } else {
-      console.warn('Не найден .add-form — форма не будет скрыта.');
+      alertMessage = 'Кажется, у вас пропал интернет, попробуйте позже.';
+    }
+
+    alert(alertMessage);
+    _nameInput.value = savedName;
+    _textInput.value = savedText;
+
+    return Promise.reject(err);
+  })
+  .finally(() => {
+    _addButton.disabled = false;
+    _addButton.classList.remove('disabled');
+
+    if (formWrapper) {
+      formWrapper.style.display = '';
     }
     if (statusBlock) {
-      statusBlock.textContent = 'Комментарий добавляется…';
-      statusBlock.style.display = 'block';
+      statusBlock.style.display = 'none';
+      statusBlock.textContent = '';
     }
-
-    addCommentToApi(apiName, apiText)
-      .then(() => loadComments())
-      .catch((err) => {
-        console.error('Не удалось отправить на API:', err.message);
-
-        // Откат оптимистичного добавления
-        _commentsData.pop();
-        render();
-
-        return Promise.reject(err);
-      })
-      .finally(() => {
-        _addButton.disabled = false;
-        _addButton.classList.remove('disabled');
-
-        // Возвращаем форму и убираем статус
-        if (formWrapper) {
-          formWrapper.style.display = ''; // сбрасывает inline-стиль
-        }
-        if (statusBlock) {
-          statusBlock.style.display = 'none';
-          statusBlock.textContent = '';
-        }
-      });
   });
+});
 }
