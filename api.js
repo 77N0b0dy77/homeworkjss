@@ -34,22 +34,29 @@ export function addCommentToApi(name, text) {
 
   return fetch(url, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: bodyPayload,
   })
     .then((res) => {
       if (!res.ok) {
-        return res.json()
+        const resClone = res.clone();
+        return resClone.json()
           .then((data) => {
+            const serverMsg = data?.error || data?.message || '';
             if (res.status === 500) {
               throw new Error('__500_INTERNAL_SERVER_ERROR__');
             } else if (res.status === 400) {
-              throw new Error('__400_BAD_REQUEST__');
+              throw new Error(`__400_BAD_REQUEST__:${serverMsg}`);
             }
-            throw new Error(data?.error || data?.message || `Ошибка ${res.status}`);
+            throw new Error(serverMsg || `Ошибка ${res.status}`);
           })
           .catch(() => {
             if (res.status === 500) {
               throw new Error('__500_INTERNAL_SERVER_ERROR__');
+            } else if (res.status === 400) {
+              throw new Error('__400_BAD_REQUEST__');
             }
             throw new Error(`Ошибка ${res.status}`);
           });
@@ -57,7 +64,6 @@ export function addCommentToApi(name, text) {
       return res.json();
     });
 }
-
 
 function formatDateFromISO(isoString) {
   if (!isoString) return "—";

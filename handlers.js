@@ -82,79 +82,87 @@ export function initHandlers(nameInput, textInput, addButton, commentsList) {
   loadComments();
 
   addButton.addEventListener('click', () => {
-  const name = _nameInput.value.trim();
-  const text = _textInput.value.trim();
+    const name = _nameInput.value.trim();
+    const text = _textInput.value.trim();
 
-  if (!name || !text) return;
-  if (name.length < 3 || text.length < 3) {
-    alert('Имя и комментарий должны быть не короче 3 символов.');
-    return;
-  }
+    if (!name || !text) return;
+    if (name.length < 3 || text.length < 3) {
+      alert('Имя и комментарий должны быть не короче 3 символов.');
+      return;
+    }
 
-  _addButton.disabled = true;
-  _addButton.classList.add('disabled');
+    if (text.toLowerCase().includes('ничего')) {
+      alert('В тексте комментария нельзя использовать слово "ничего".');
+      return;
+    }
 
-  const apiName = name;
-  const apiText = text;
+    _addButton.disabled = true;
+    _addButton.classList.add('disabled');
 
-  const savedName = _nameInput.value;
-  const savedText = _textInput.value;
+    const apiName = name;
+    const apiText = text;
 
-  const displayName = escapeHtml(name);
-  const displayText = escapeHtml(text);
+    const savedName = _nameInput.value;
+    const savedText = _textInput.value;
 
-  _commentsData.push({
-    name: displayName,
-    text: displayText,
-    date: new Date().toLocaleString('ru-RU'),
-    likes: 0,
-    isLiked: false,
-  });
-  render();
+    const displayName = escapeHtml(name);
+    const displayText = escapeHtml(text);
 
-  if (formWrapper) {
-    formWrapper.style.display = 'none';
-  }
-  if (statusBlock) {
-    statusBlock.textContent = 'Комментарий добавляется…';
-    statusBlock.style.display = 'block';
-  }
-
-addCommentToApi(apiName, apiText)
-  .then(() => loadComments())
-  .catch((err) => {
-    console.error('Ошибка отправки:', err);
-
-    _commentsData.pop();
+    _commentsData.push({
+      name: displayName,
+      text: displayText,
+      date: new Date().toLocaleString('ru-RU'),
+      likes: 0,
+      isLiked: false,
+    });
     render();
 
-    let alertMessage;
-
-    if (err.message === '__400_BAD_REQUEST__') {
-      alertMessage = 'Некорректные данные: проверьте имя и текст комментария.';
-    } else if (err.message === '__500_INTERNAL_SERVER_ERROR__') {
-      alertMessage = 'Сервер сломался, попробуйте позже.';
-    } else {
-      alertMessage = 'Кажется, у вас пропал интернет, попробуйте позже.';
-    }
-
-    alert(alertMessage);
-    _nameInput.value = savedName;
-    _textInput.value = savedText;
-
-    return Promise.reject(err);
-  })
-  .finally(() => {
-    _addButton.disabled = false;
-    _addButton.classList.remove('disabled');
-
     if (formWrapper) {
-      formWrapper.style.display = '';
+      formWrapper.style.display = 'none';
     }
     if (statusBlock) {
-      statusBlock.style.display = 'none';
-      statusBlock.textContent = '';
+      statusBlock.textContent = 'Комментарий добавляется…';
+      statusBlock.style.display = 'block';
     }
+
+    addCommentToApi(apiName, apiText)
+      .then(() => loadComments())
+      .catch((err) => {
+        console.error('Ошибка отправки:', err);
+
+        _commentsData.pop();
+        render();
+
+        let alertMessage;
+        if (err.message.startsWith('__500_INTERNAL_SERVER_ERROR__')) {
+          alertMessage = 'Сервер сломался, попробуйте позже.';
+        } else if (err.message.startsWith('__400_BAD_REQUEST__')) {
+          const serverPart = err.message.substring('__400_BAD_REQUEST__'.length).replace(/^:/, '').trim();
+          if (serverPart) {
+            alertMessage = `Не удалось добавить комментарий: ${serverPart}`;
+          } else {
+            alertMessage = 'Некорректные данные: проверьте имя и текст комментария.';
+          }
+        } else {
+          alertMessage = 'Кажется, у вас пропал интернет или сервис недоступен. Попробуйте позже.';
+        }
+
+        alert(alertMessage);
+        _nameInput.value = savedName;
+        _textInput.value = savedText;
+
+        return Promise.reject(err);
+      })
+      .finally(() => {
+        _addButton.disabled = false;
+        _addButton.classList.remove('disabled');
+        if (formWrapper) {
+          formWrapper.style.display = '';
+        }
+        if (statusBlock) {
+          statusBlock.style.display = 'none';
+          statusBlock.textContent = '';
+        }
+      });
   });
-});
 }
