@@ -1,79 +1,49 @@
-const API_BASE = "https://wedev-api.sky.pro/api/v1";
-const PERSONAL_KEY = "ivan-dmitriev";
+// api.js
 
-export function fetchComments() {
-  const url = `${API_BASE}/${PERSONAL_KEY}/comments`;
-  return fetch(url)
-    .then((res) => {
-      if (!res.ok) {
-        return res.json().then((data) => {
-          const msg = data?.error || data?.message || `Ошибка загрузки: ${res.status}`;
-          throw new Error(msg);
-        }).catch(() => {
-          throw new Error(`Ошибка загрузки: ${res.status}`);
-        });
-      }
-      return res.json();
-    })
-    .then((data) => {
-      const commentsArray = Array.isArray(data.comments) ? data.comments : [];
-      return commentsArray.map((c) => ({
-        id: c.id,
-        name: c.author?.name || "Аноним",
-        text: c.text || "",
-        date: formatDateFromISO(c.date),
-        likes: Number(c.likes) || 0,
-        isLiked: Boolean(c.isLiked),
-      }));
-    });
+// !!! ВАЖНО: Замени на своё имя и фамилию латиницей (например, gleb-fokin) !!!
+const PERSONAL_KEY = "ivan-dmitriev"; 
+
+const API_BASE = `https://wedev-api.sky.pro/api/v2/${PERSONAL_KEY}`;
+
+export async function fetchComments() {
+  const url = `${API_BASE}/comments`;
+  
+  // Для GET-запроса заголовки вообще не нужны
+  const res = await fetch(url);
+  
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error || `Ошибка загрузки: ${res.status}`);
+  }
+  
+  const data = await res.json();
+  return data.comments || [];
 }
 
-export function addCommentToApi(name, text) {
-  const url = `${API_BASE}/${PERSONAL_KEY}/comments`;
-  const bodyPayload = JSON.stringify({ name, text });
+export async function addCommentToApi(text) {
+  const url = `${API_BASE}/comments`;
+  const token = localStorage.getItem("auth_token");
 
-  return fetch(url, {
-    method: 'POST',
+  if (!token) {
+    throw new Error("Нет токена авторизации. Сначала войдите.");
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      // ГЛАВНОЕ ИСПРАВЛЕНИЕ:
+      // Убираем "Content-Type": "application/json" — этот API его не любит!
+      
+      "Authorization": `Bearer ${token}`
     },
-    body: bodyPayload,
-  })
-    .then((res) => {
-      if (!res.ok) {
-        const resClone = res.clone();
-        return resClone.json()
-          .then((data) => {
-            const serverMsg = data?.error || data?.message || '';
-            if (res.status === 500) {
-              throw new Error('__500_INTERNAL_SERVER_ERROR__');
-            } else if (res.status === 400) {
-              throw new Error(`__400_BAD_REQUEST__:${serverMsg}`);
-            }
-            throw new Error(serverMsg || `Ошибка ${res.status}`);
-          })
-          .catch(() => {
-            if (res.status === 500) {
-              throw new Error('__500_INTERNAL_SERVER_ERROR__');
-            } else if (res.status === 400) {
-              throw new Error('__400_BAD_REQUEST__');
-            }
-            throw new Error(`Ошибка ${res.status}`);
-          });
-      }
-      return res.json();
-    });
-}
+    body: JSON.stringify({ text }), // Тело оставляем в формате JSON-строки
+  });
 
-function formatDateFromISO(isoString) {
-  if (!isoString) return "—";
-  const d = new Date(isoString);
-  if (isNaN(d.getTime())) return "—";
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    // Если ошибка про JSON — это именно из-за заголовка, который мы убрали
+    throw new Error(data?.error || data?.message || `Ошибка добавления: ${res.status}`);
+  }
 
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `${day}.${month}.${year} ${hours}:${minutes}`;
+  return res.json();
 }

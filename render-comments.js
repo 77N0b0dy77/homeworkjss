@@ -1,4 +1,5 @@
 export function renderComments(commentsList, commentsData) {
+  if (!commentsList) return;
   commentsList.innerHTML = "";
 
   if (commentsData.length === 0) {
