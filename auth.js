@@ -19,7 +19,7 @@ export function clearToken() {
 
 export async function loginUser(login, password) {
   const url = `${API_BASE_USER}/user/login`;
-  
+
   const res = await fetch(url, {
     method: "POST",
     body: JSON.stringify({ login, password }),
@@ -38,5 +38,30 @@ export async function loginUser(login, password) {
   if (!token) throw new Error("Сервер не вернул токен");
 
   setToken(token);
-  return user; // Возвращаем имя пользователя
+  return user;
+}
+
+export async function registerUser(name, login, password) {
+  const url = `https://wedev-api.sky.pro/api/user`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify({ name, login, password }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const msg =
+      data?.error || data?.message || `Ошибка регистрации: ${res.status}`;
+    throw new Error(msg);
+  }
+
+  const data = await res.json();
+  const user = data.user;
+  const token = user?.token;
+
+  if (!token) throw new Error("Сервер не вернул токен");
+
+  setToken(token);
+  return user;
 }

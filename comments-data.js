@@ -1,4 +1,3 @@
-
 export const commentsData = [
   {
     name: "Глеб Фокин",
