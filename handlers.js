@@ -2,14 +2,19 @@ import { isLoggedIn, loginUser, clearToken, registerUser } from "./auth.js";
 import { fetchComments, addCommentToApi } from "./api.js";
 import { renderComments } from "./render-comments.js";
 
-let _nameInput,
-  _textInput,
-  _addButton,
-  _commentsList,
-  _authPlaceholder,
-  _userProfile;
+let _nameInput, _textInput, _addButton, _commentsList, _authUnderComments, _userProfile;
 let _isLoginFormVisible = false;
-let _isRegisterFormVisible = false; // отслеживаем, открыта ли форма входа
+let _isRegisterFormVisible = false;
+
+export function initHandlers(nameInput, textInput, addButton, commentsList, authUnderComments) {
+  _nameInput = nameInput;
+  _textInput = textInput;
+  _addButton = addButton;
+  _commentsList = commentsList;
+  _authUnderComments = authUnderComments;
+  loadComments();
+  updateAuthUI();
+}
 
 export async function loadComments() {
   if (!_commentsList) return;
@@ -25,49 +30,17 @@ export async function loadComments() {
   }
 }
 
-export function initHandlers(
-  nameInput,
-  textInput,
-  addButton,
-  commentsList,
-  authPlaceholder,
-) {
-  _nameInput = nameInput;
-  _textInput = textInput;
-  _addButton = addButton;
-  _commentsList = commentsList;
-  _authPlaceholder = authPlaceholder;
-
-  loadComments();
-  updateAuthUI();
-}
-
-export function formatDateFromISO(isoString) {
-  if (!isoString) return "—";
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return "—";
-
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear().toString().slice(-2);
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${day}.${month}.${year} ${hours}:${minutes}`;
-}
-
 function createLoginForm() {
   const container = document.createElement("div");
   container.className = "auth-panel";
   container.innerHTML = `
-  <h3>Вход</h3>
-  <p class="hint">Для теста: admin / admin</p>
-  <input type="text" class="auth-input login-input" placeholder="Логин">
-  <input type="password" class="auth-input password-input" placeholder="Пароль">
-  <!-- Одинаковый класс для кнопки -->
-  <button type="button" class="auth-btn submit-btn">Войти</button>
-  <div class="status" style="margin-top:12px; font-size:13px; text-align:center;"></div>
-`;
+    <h3>Вход</h3>
+    <p class="hint">Для теста: admin / admin</p>
+    <input type="text" class="auth-input login-input" placeholder="Логин">
+    <input type="password" class="auth-input password-input" placeholder="Пароль">
+    <button type="button" class="auth-btn submit-btn">Войти</button>
+    <div class="status" style="margin-top:12px; font-size:13px; text-align:center;"></div>
+  `;
 
   const submitBtn = container.querySelector(".submit-btn");
   const statusBlock = container.querySelector(".status");
@@ -81,6 +54,7 @@ function createLoginForm() {
       const user = await loginUser(login, password);
       _userProfile = user;
       _isLoginFormVisible = false;
+      _isRegisterFormVisible = false;
       updateAuthUI();
       loadComments();
     } catch (e) {
@@ -93,46 +67,18 @@ function createLoginForm() {
   return container;
 }
 
-function createGuestMessage() {
-  const el = document.createElement("div");
-  el.className = "guest-message";
-  el.innerHTML = `
-  <strong>Авторизуйтесь, чтобы оставлять комментарии</strong>
-  <p style="margin:10px 0;">Для теста: admin / admin</p>
-  <div style="display:flex; gap:10px; flex-wrap:wrap;">
-    <button type="button" class="auth-btn guest-action-btn" id="show-login-btn">Войти</button>
-    <button type="button" class="auth-btn guest-action-btn" id="show-register-btn">Регистрация</button>
-  </div>
-`;
-
-  el.querySelector("#show-login-btn").addEventListener("click", () => {
-    _isLoginFormVisible = true;
-    _isRegisterFormVisible = false;
-    updateAuthUI();
-  });
-
-  el.querySelector("#show-register-btn").addEventListener("click", () => {
-    _isLoginFormVisible = false;
-    _isRegisterFormVisible = true;
-    updateAuthUI();
-  });
-
-  return el;
-}
-
 function createRegisterForm() {
   const container = document.createElement("div");
   container.className = "auth-panel";
   container.innerHTML = `
-  <h3>Регистрация</h3>
-  <input type="text" class="auth-input register-name" placeholder="Имя (для отображения)">
-  <input type="text" class="auth-input register-login" placeholder="Логин (уникальный)">
-  <input type="password" class="auth-input register-password" placeholder="Пароль">
-  <!-- Тот же самый класс -->
-  <button type="button" class="auth-btn submit-btn">Зарегистрироваться</button>
-  <div class="status" style="margin-top:12px; font-size:13px; text-align:center;"></div>
-  <p style="font-size:12px; color:#777; margin-top:8px;">Уже есть аккаунт? <a href="#" class="switch-to-login">Войти</a></p>
-`;
+    <h3>Регистрация</h3>
+    <input type="text" class="auth-input register-name" placeholder="Имя (для отображения)">
+    <input type="text" class="auth-input register-login" placeholder="Логин (уникальный)">
+    <input type="password" class="auth-input register-password" placeholder="Пароль">
+    <button type="button" class="auth-btn submit-btn">Зарегистрироваться</button>
+    <div class="status" style="margin-top:12px; font-size:13px; text-align:center;"></div>
+    <p style="font-size:12px; color:#777; margin-top:8px;">Уже есть аккаунт? <a href="#" class="switch-to-login">Войти</a></p>
+  `;
 
   const switchToLogin = container.querySelector(".switch-to-login");
   switchToLogin.addEventListener("click", (e) => {
@@ -174,52 +120,76 @@ function createRegisterForm() {
   return container;
 }
 
-function updateAuthUI() {
-  const loggedIn = isLoggedIn();
-
-  // Очищаем блок авторизации перед перерисовкой
-  _authPlaceholder.innerHTML = "";
-
-  if (loggedIn) {
-    // Пользователь авторизован: ничего не показываем в блоке авторизации
-    _isLoginFormVisible = false;
-    _isRegisterFormVisible = false;
-  } else if (_isRegisterFormVisible) {
-    // Показываем форму регистрации
-    const form = createRegisterForm();
-    _authPlaceholder.appendChild(form);
-  } else if (_isLoginFormVisible) {
-    // Показываем форму входа
-    const form = createLoginForm();
-    _authPlaceholder.appendChild(form);
-  } else {
-    // Не авторизован и формы не открыты: показываем блок-приглашение
-    const guest = createGuestMessage();
-    _authPlaceholder.appendChild(guest);
+function createGuestMessage() {
+  const el = document.createElement("div");
+  el.className = "guest-message";
+  el.style.display = "flex";
+  el.style.gap = "12px";
+  el.style.flexDirection = "column";
+  if (window.matchMedia("(min-width: 600px)").matches) {
+    el.style.flexDirection = "row";
   }
 
-  // --- Дальше идёт старый код, который менять не надо (про форму комментария и кнопку «Выйти») ---
+  el.innerHTML = `
+    <strong>Авторизуйтесь, чтобы оставлять комментарии</strong>
+    <div class="guest-buttons">
+      <button type="button" class="auth-btn guest-action-btn" id="show-login-btn">Войти</button>
+      <button type="button" class="auth-btn guest-action-btn" id="show-register-btn">Регистрация</button>
+    </div>
+  `;
 
-  // 2. Форма добавления комментария (видна только авторизованным)
+  el.querySelector("#show-login-btn").addEventListener("click", () => {
+    _isLoginFormVisible = true;
+    _isRegisterFormVisible = false;
+    updateAuthUI();
+  });
+
+  el.querySelector("#show-register-btn").addEventListener("click", () => {
+    _isRegisterFormVisible = true;
+    _isLoginFormVisible = false;
+    updateAuthUI();
+  });
+
+  return el;
+}
+
+export function updateAuthUI() {
+  const loggedIn = isLoggedIn();
+
+  if (_authUnderComments) {
+    _authUnderComments.innerHTML = "";
+
+    if (loggedIn) {
+      _isLoginFormVisible = false;
+      _isRegisterFormVisible = false;
+    } else if (_isRegisterFormVisible) {
+      _authUnderComments.appendChild(createRegisterForm());
+    } else if (_isLoginFormVisible) {
+      _authUnderComments.appendChild(createLoginForm());
+    } else {
+      _authUnderComments.appendChild(createGuestMessage());
+    }
+  }
+
   const addForm = document.getElementById("add-comment-form");
   if (addForm) {
     addForm.style.display = loggedIn ? "block" : "none";
   }
 
-  // 3. Заполнение имени (только для авторизованных)
-  if (_nameInput && _userProfile) {
-    _nameInput.value = _userProfile.name || "Пользователь";
-    _nameInput.readOnly = true;
-    _nameInput.style.opacity = "0.7";
-    _nameInput.style.cursor = "not-allowed";
-  } else if (_nameInput) {
-    _nameInput.readOnly = false;
-    _nameInput.style.opacity = "1";
-    _nameInput.style.cursor = "auto";
-    _nameInput.value = "";
+  if (_nameInput) {
+    if (loggedIn && _userProfile) {
+      _nameInput.value = _userProfile.name || "Пользователь";
+      _nameInput.readOnly = true;
+      _nameInput.style.opacity = "0.7";
+      _nameInput.style.cursor = "not-allowed";
+    } else {
+      _nameInput.readOnly = false;
+      _nameInput.style.opacity = "1";
+      _nameInput.style.cursor = "auto";
+      _nameInput.value = "";
+    }
   }
 
-  // 4. Кнопка «Выйти»
   let logoutBtn = document.querySelector(".logout-btn");
   if (loggedIn) {
     if (!logoutBtn) {
@@ -234,9 +204,7 @@ function updateAuthUI() {
       logoutBtn.style.cursor = "pointer";
       logoutBtn.textContent = "Выйти";
 
-      const target =
-        document.getElementById("add-comment-form") ||
-        document.querySelector(".container");
+      const target = document.getElementById("add-comment-form") || document.querySelector(".container");
       target?.parentNode?.insertBefore(logoutBtn, target?.nextSibling);
     }
     logoutBtn.style.display = "inline-block";
@@ -244,7 +212,7 @@ function updateAuthUI() {
       clearToken();
       _userProfile = null;
       _isLoginFormVisible = false;
-      _isRegisterFormVisible = false; // важно сбросить и это
+      _isRegisterFormVisible = false;
       updateAuthUI();
       loadComments();
     };
