@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (nameInput && textInput && addButton && commentsList && authUnderComments) {
     initHandlers(nameInput, textInput, addButton, commentsList, authUnderComments);
-
     addButton.addEventListener("click", handleAddComment);
   } else {
     console.warn("Не все элементы найдены. Проверьте классы и ID в HTML.");

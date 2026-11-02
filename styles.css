@@ -198,101 +198,122 @@ body {
 
 /* Панель авторизации */
 .auth-panel {
+  background: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 24px;
   width: 100%;
-  max-width: 420px;
-  background: #2b2b2b;
-  border: 1px solid #444;
-  border-radius: 20px;
-  padding: 28px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  margin-top: 24px;
+  max-width: 360px; /* чтобы не растягивался на весь экран */
+  color: #333;
 }
 
 .auth-panel h3 {
-  margin: 0 0 20px;
-  font-size: 22px;
-  color: #fff;
+  margin: 0 0 12px 0;
+  font-size: 20px;
   text-align: center;
 }
 
-.auth-panel .hint {
-  text-align: center;
-  margin-bottom: 16px;
-  color: #aaa;
+.hint {
   font-size: 13px;
+  color: #888;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+/* Блок с полями — чтобы они стояли друг под другом и не разъезжались */
+.auth-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .auth-input {
-  display: block;
   width: 100%;
-  padding: 14px;
-  margin-bottom: 14px;
-  background: #1f1f1f;
-  border: 1px solid #333;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
   border-radius: 8px;
-  color: #fff;
-  font-family: Helvetica, Arial, sans-serif;
   font-size: 15px;
-  box-sizing: border-box;
+  box-sizing: border-box; /* чтобы padding не увеличивал ширину */
 }
 
 .auth-input:focus {
   outline: none;
-  border-color: #7334ea;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
 }
 
-.auth-btn {
+.auth-btn.submit-btn {
   width: 100%;
-  padding: 14px;
-  background: #bcec30;
-  color: #000;
-  border: none;
-  border-radius: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 16px;
-  transition: opacity 0.2s, transform 0.1s;
-}
-
-.auth-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.auth-btn:active {
-  transform: translateY(0);
-}
-
-#add-comment-form {
-  display: none;
-}
-
-.auth-btn {
-  display: inline-block;
-  padding: 10px 16px;
-  background-color: #4a90e2;
-  /* синий, как у многих форм входа */
-  color: #ffffff;
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
   border: none;
   border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-  text-align: center;
+  margin-top: 16px;
 }
 
-.auth-btn:hover {
-  background-color: #357abd;
-}
-
-.auth-btn:active {
-  transform: scale(0.98);
-  background-color: #2f66a3;
+.auth-btn.submit-btn:hover {
+  background-color: #0056b3;
 }
 
 /* Кнопка-триггер в блоке «Гость» — чуть компактнее */
 .guest-action-btn {
   padding: 8px 14px;
   font-size: 13px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px);
+}
+
+/* Окно */
+.modal-window {
+  background: #2b2b2b;
+  border: 1px solid #444;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  transform: translateY(-20px);
+  animation: modal-slide-in 0.25s ease-out forwards;
+}
+
+@keyframes modal-slide-in {
+  to { transform: translateY(0); }
+}
+
+/* Кнопка закрытия */
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+.close-btn:hover { color: #fff; }
+
+/* Адаптив: на очень узких экранах уменьшаем окно */
+@media (max-width: 400px) {
+  .modal-window { padding: 16px; }
 }

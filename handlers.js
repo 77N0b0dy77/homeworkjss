@@ -1,173 +1,115 @@
-import { isLoggedIn, loginUser, clearToken, registerUser } from "./auth.js";
-import { fetchComments, addCommentToApi } from "./api.js";
-import { renderComments } from "./render-comments.js";
+import { fetchComments } from "./api.js";
+import { sendCommentToApi } from "./api.js"; // <-- используем единую функцию
+import { loginUser, registerUser, isLoggedIn, clearToken } from "./auth.js";
 
-let _nameInput, _textInput, _addButton, _commentsList, _authUnderComments, _userProfile;
-let _isLoginFormVisible = false;
-let _isRegisterFormVisible = false;
+// 1. Глобальные переменные
+let _nameInput = null;
+let _textInput = null;
+let _addButton = null;
+let _commentsList = null;
+let _authUnderComments = null;
+let _userProfile = null;
 
-export function initHandlers(nameInput, textInput, addButton, commentsList, authUnderComments) {
+const modalOverlay = document.getElementById("auth-modal-overlay");
+const modalContent = document.getElementById("auth-modal-content");
+
+function initHandlers(nameInput, textInput, addButton, commentsList, authUnderComments) {
   _nameInput = nameInput;
   _textInput = textInput;
   _addButton = addButton;
   _commentsList = commentsList;
   _authUnderComments = authUnderComments;
+
   loadComments();
   updateAuthUI();
 }
 
-export async function loadComments() {
-  if (!_commentsList) return;
-  _commentsList.classList.add("loading");
+async function loadComments() {
+  if (!_commentsList) {
+    console.warn("Контейнер .comments не найден");
+    return;
+  }
+
   try {
     const comments = await fetchComments();
-    renderComments(_commentsList, comments);
+    renderCommentsLocal(_commentsList, comments);
   } catch (e) {
-    console.error(e);
-    _commentsList.innerHTML = `<li class="comment-empty" style="color:red">Ошибка: ${e.message}</li>`;
-  } finally {
-    _commentsList.classList.remove("loading");
+    console.error("Ошибка загрузки комментариев:", e);
+    _commentsList.innerHTML = `
+      <li style="text-align:center; color:#d9534f; padding:16px;">
+        Ошибка загрузки: ${e.message}
+      </li>
+    `;
   }
 }
 
-function createLoginForm() {
-  const container = document.createElement("div");
-  container.className = "auth-panel";
-  container.innerHTML = `
-    <h3>Вход</h3>
-    <p class="hint">Для теста: admin / admin</p>
-    <input type="text" class="auth-input login-input" placeholder="Логин">
-    <input type="password" class="auth-input password-input" placeholder="Пароль">
-    <button type="button" class="auth-btn submit-btn">Войти</button>
-    <div class="status" style="margin-top:12px; font-size:13px; text-align:center;"></div>
-  `;
+function renderCommentsLocal(listElement, commentsData) {
+  if (!listElement) return;
+  listElement.innerHTML = "";
 
-  const submitBtn = container.querySelector(".submit-btn");
-  const statusBlock = container.querySelector(".status");
-
-  submitBtn.addEventListener("click", async () => {
-    statusBlock.textContent = "Проверка...";
-    const login = container.querySelector(".login-input").value.trim();
-    const password = container.querySelector(".password-input").value.trim();
-
-    try {
-      const user = await loginUser(login, password);
-      _userProfile = user;
-      _isLoginFormVisible = false;
-      _isRegisterFormVisible = false;
-      updateAuthUI();
-      loadComments();
-    } catch (e) {
-      console.error(e);
-      statusBlock.style.color = "red";
-      statusBlock.textContent = e.message;
-    }
-  });
-
-  return container;
-}
-
-function createRegisterForm() {
-  const container = document.createElement("div");
-  container.className = "auth-panel";
-  container.innerHTML = `
-    <h3>Регистрация</h3>
-    <input type="text" class="auth-input register-name" placeholder="Имя (для отображения)">
-    <input type="text" class="auth-input register-login" placeholder="Логин (уникальный)">
-    <input type="password" class="auth-input register-password" placeholder="Пароль">
-    <button type="button" class="auth-btn submit-btn">Зарегистрироваться</button>
-    <div class="status" style="margin-top:12px; font-size:13px; text-align:center;"></div>
-    <p style="font-size:12px; color:#777; margin-top:8px;">Уже есть аккаунт? <a href="#" class="switch-to-login">Войти</a></p>
-  `;
-
-  const switchToLogin = container.querySelector(".switch-to-login");
-  switchToLogin.addEventListener("click", (e) => {
-    e.preventDefault();
-    _isRegisterFormVisible = false;
-    _isLoginFormVisible = true;
-    updateAuthUI();
-  });
-
-  const submitBtn = container.querySelector(".submit-btn");
-  const statusBlock = container.querySelector(".status");
-
-  submitBtn.addEventListener("click", async () => {
-    const name = container.querySelector(".register-name").value.trim();
-    const login = container.querySelector(".register-login").value.trim();
-    const password = container.querySelector(".register-password").value.trim();
-
-    if (!name || !login || !password) {
-      statusBlock.style.color = "red";
-      statusBlock.textContent = "Заполните все поля";
-      return;
-    }
-
-    statusBlock.textContent = "Отправка...";
-    try {
-      const user = await registerUser(name, login, password);
-      _userProfile = user;
-      _isRegisterFormVisible = false;
-      _isLoginFormVisible = false;
-      updateAuthUI();
-      loadComments();
-    } catch (e) {
-      console.error(e);
-      statusBlock.style.color = "red";
-      statusBlock.textContent = e.message;
-    }
-  });
-
-  return container;
-}
-
-function createGuestMessage() {
-  const el = document.createElement("div");
-  el.className = "guest-message";
-  el.style.display = "flex";
-  el.style.gap = "12px";
-  el.style.flexDirection = "column";
-  if (window.matchMedia("(min-width: 600px)").matches) {
-    el.style.flexDirection = "row";
+  if (!commentsData || commentsData.length === 0) {
+    listElement.innerHTML = "<li style='text-align:center; color:#777; padding:20px;'>Комментариев пока нет</li>";
+    return;
   }
 
-  el.innerHTML = `
-    <strong>Авторизуйтесь, чтобы оставлять комментарии</strong>
-    <div class="guest-buttons">
-      <button type="button" class="auth-btn guest-action-btn" id="show-login-btn">Войти</button>
-      <button type="button" class="auth-btn guest-action-btn" id="show-register-btn">Регистрация</button>
-    </div>
-  `;
+  commentsData.forEach(comment => {
+    const dateStr = typeof formatDateFromISO === "function"
+      ? formatDateFromISO(comment.date)
+      : (comment.date || "—");
 
-  el.querySelector("#show-login-btn").addEventListener("click", () => {
-    _isLoginFormVisible = true;
-    _isRegisterFormVisible = false;
-    updateAuthUI();
+    const authorName = comment.author?.name || comment.name || "Пользователь";
+
+    const safeText = (text) => {
+      if (!text) return "";
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    };
+
+    const li = document.createElement("li");
+    li.className = "comment";
+    li.innerHTML = `
+      <div class="comment-header">
+        <span class="comment-author">${safeText(authorName)}</span>
+        <span class="comment-date">${dateStr}</span>
+      </div>
+      <div class="comment-body">
+        <div class="comment-text">${safeText(comment.text)}</div>
+      </div>
+      <div class="comment-footer">
+        <div class="likes">
+          <span class="likes-counter">${comment.likes || 0}</span>
+          <button class="like-button" data-comment-id="${comment.id}" aria-label="Нравится"></button>
+        </div>
+      </div>
+    `;
+    listElement.appendChild(li);
   });
-
-  el.querySelector("#show-register-btn").addEventListener("click", () => {
-    _isRegisterFormVisible = true;
-    _isLoginFormVisible = false;
-    updateAuthUI();
-  });
-
-  return el;
 }
 
-export function updateAuthUI() {
+function updateAuthUI() {
   const loggedIn = isLoggedIn();
 
   if (_authUnderComments) {
     _authUnderComments.innerHTML = "";
-
-    if (loggedIn) {
-      _isLoginFormVisible = false;
-      _isRegisterFormVisible = false;
-    } else if (_isRegisterFormVisible) {
-      _authUnderComments.appendChild(createRegisterForm());
-    } else if (_isLoginFormVisible) {
-      _authUnderComments.appendChild(createLoginForm());
-    } else {
-      _authUnderComments.appendChild(createGuestMessage());
+    if (!loggedIn) {
+      const el = document.createElement("div");
+      el.className = "guest-message";
+      el.innerHTML = `
+        <strong>Для того чтобы оставить комментарий, авторизуйтесь</strong>
+        <div class="guest-buttons" style="margin-top:16px;">
+          <button type="button" class="auth-btn guest-action-btn" id="show-login-btn">Войти</button>
+          <button type="button" class="auth-btn guest-action-btn" id="show-register-btn">Регистрация</button>
+        </div>
+      `;
+      const loginBtn = el.querySelector("#show-login-btn");
+      const regBtn = el.querySelector("#show-register-btn");
+      if (loginBtn) loginBtn.addEventListener("click", () => openAuthModal("login"));
+      if (regBtn) regBtn.addEventListener("click", () => openAuthModal("register"));
+      _authUnderComments.appendChild(el);
     }
   }
 
@@ -203,7 +145,6 @@ export function updateAuthUI() {
       logoutBtn.style.borderRadius = "12px";
       logoutBtn.style.cursor = "pointer";
       logoutBtn.textContent = "Выйти";
-
       const target = document.getElementById("add-comment-form") || document.querySelector(".container");
       target?.parentNode?.insertBefore(logoutBtn, target?.nextSibling);
     }
@@ -211,8 +152,6 @@ export function updateAuthUI() {
     logoutBtn.onclick = () => {
       clearToken();
       _userProfile = null;
-      _isLoginFormVisible = false;
-      _isRegisterFormVisible = false;
       updateAuthUI();
       loadComments();
     };
@@ -221,24 +160,129 @@ export function updateAuthUI() {
   }
 }
 
-export async function handleAddComment() {
-  if (!isLoggedIn()) {
-    alert("Сначала авторизуйтесь!");
+function openAuthModal(mode) {
+  if (!modalOverlay || !modalContent) {
+    console.error("Элементы модального окна не найдены");
     return;
   }
+  modalContent.innerHTML = "";
+  modalContent.appendChild(mode === "login" ? createLoginForm() : createRegisterForm());
+  modalOverlay.style.display = "flex";
+  document.body.style.overflow = "hidden";
+}
 
-  const text = _textInput?.value.trim();
-  if (!text || text.length < 3) {
-    alert("Текст комментария должен быть длиннее 3 символов.");
+function closeAuthModal() {
+  if (modalOverlay) {
+    modalOverlay.style.display = "none";
+    document.body.style.overflow = "";
+  }
+}
+
+document.getElementById("close-auth-modal")?.addEventListener("click", closeAuthModal);
+modalOverlay?.addEventListener("click", (e) => {
+  if (e.target === modalOverlay) closeAuthModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modalOverlay?.style.display === "flex") {
+    closeAuthModal();
+  }
+});
+
+function createLoginForm() {
+  const container = document.createElement("div");
+  container.className = "auth-panel";
+  container.innerHTML = `
+    <h3>Вход</h3>
+    <p class="hint">Для теста: admin / admin</p>
+    <div class="auth-fields">
+      <input type="text" class="auth-input login-input" placeholder="Логин">
+      <input type="password" class="auth-input password-input" placeholder="Пароль">
+    </div>
+    <button type="button" class="auth-btn submit-btn">Войти</button>
+    <div class="status" style="margin-top:12px; font-size:13px; text-align:center;"></div>
+  `;
+  const submitBtn = container.querySelector(".submit-btn");
+  const statusBlock = container.querySelector(".status");
+  submitBtn.addEventListener("click", async () => {
+    statusBlock.textContent = "Проверка...";
+    const login = container.querySelector(".login-input").value.trim();
+    const password = container.querySelector(".password-input").value.trim();
+    try {
+      const user = await loginUser(login, password);
+      _userProfile = user;
+      closeAuthModal();
+      updateAuthUI();
+      loadComments();
+    } catch (e) {
+      console.error(e);
+      statusBlock.style.color = "red";
+      statusBlock.textContent = e.message;
+    }
+  });
+  return container;
+}
+
+function createRegisterForm() {
+  const container = document.createElement("div");
+  container.className = "auth-panel";
+  // ИСПРАВЛЕНА ОПИСКА: class="..."
+  container.innerHTML = `
+    <h3>Регистрация</h3>
+    <div class="auth-fields">
+      <input type="text" class="auth-input register-name" placeholder="Имя (для отображения)">
+      <input type="text" class="auth-input register-login" placeholder="Логин (уникальный)">
+      <input type="password" class="auth-input register-password" placeholder="Пароль">
+    </div>
+    <button type="button" class="auth-btn submit-btn">Зарегистрироваться</button>
+    <div class="status" style="margin-top:12px; font-size:13px; text-align:center;"></div>
+  `;
+  const submitBtn = container.querySelector(".submit-btn");
+  const statusBlock = container.querySelector(".status");
+  submitBtn.addEventListener("click", async () => {
+    const name = container.querySelector(".register-name").value.trim();
+    const login = container.querySelector(".register-login").value.trim();
+    const password = container.querySelector(".register-password").value.trim();
+    if (!name || !login || !password) {
+      statusBlock.style.color = "red";
+      statusBlock.textContent = "Заполните все поля";
+      return;
+    }
+    statusBlock.textContent = "Отправка...";
+    try {
+      const user = await registerUser(name, login, password);
+      _userProfile = user;
+      closeAuthModal();
+      updateAuthUI();
+      loadComments();
+    } catch (e) {
+      console.error(e);
+      statusBlock.style.color = "red";
+      statusBlock.textContent = e.message;
+    }
+  });
+  return container;
+}
+
+async function handleAddComment() {
+  if (!_textInput || !_nameInput) {
+    console.warn("Элементы формы не найдены");
     return;
   }
-
+  const text = _textInput.value.trim();
+  const name = _nameInput.value.trim();
+  if (text.length < 3) {
+    alert("Комментарий должен быть минимум 3 символа");
+    return;
+  }
   try {
-    await addCommentToApi(text);
+    await sendCommentToApi(text, name);
     _textInput.value = "";
     loadComments();
   } catch (e) {
-    console.error(e);
-    alert(`Не удалось добавить комментарий: ${e.message}`);
+    console.error("Ошибка при добавлении комментария:", e);
+    alert("Не удалось добавить комментарий: " + (e.message || "Ошибка сети"));
   }
 }
+
+// ЕДИНСТВЕННЫЙ экспорт
+export { initHandlers, handleAddComment };
