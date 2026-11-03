@@ -1,5 +1,4 @@
-// auth.js
-const API_BASE_USER = "https://wedev-api.sky.pro/api"; // Путь для авторизации (без v2)
+const API_BASE_USER = "https://wedev-api.sky.pro/api";
 
 export function isLoggedIn() {
   return !!localStorage.getItem("auth_token");

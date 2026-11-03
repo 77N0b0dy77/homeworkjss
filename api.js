@@ -1,4 +1,4 @@
-const PERSONAL_KEY = "ivan-dmitriev"; // <-- Убедись, что это ТВОЙ ключ латиницей!
+const PERSONAL_KEY = "ivan-dmitriev";
 const API_BASE = `https://wedev-api.sky.pro/api/v2/${PERSONAL_KEY}`;
 
 export async function fetchComments() {
@@ -31,7 +31,6 @@ export async function sendCommentToApi(text, name) {
     throw new Error("Имя пользователя не может быть пустым.");
   }
 
-  // ВАЖНО: Только JSON, никаких FormData!
   const payload = {
     text: cleanText,
     name: cleanName,
@@ -42,10 +41,10 @@ export async function sendCommentToApi(text, name) {
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json", // Обязательно для этого API
+      "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-    body: JSON.stringify(payload), // Строка JSON
+    body: JSON.stringify(payload),
   });
 
   let errorMessage = `Ошибка сервера: ${res.status}`;
@@ -56,7 +55,6 @@ export async function sendCommentToApi(text, name) {
     responseData = await res.json();
     errorMessage = responseData.message || responseData.error || responseData.msg || errorMessage;
   } catch (e) {
-    // Если сервер вернул не JSON (например, HTML-ошибку), читаем как текст
     const textBody = await res.text().catch(() => "");
     if (textBody) {
       errorMessage += " " + textBody.slice(0, 200);

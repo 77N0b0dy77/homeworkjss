@@ -62,6 +62,11 @@ body {
   font-size: 32px;
 }
 
+
+.comments--hidden {
+  display: none !important;
+}
+
 .likes {
   display: flex;
   align-items: center;
@@ -153,7 +158,6 @@ body {
   color: #777;
 }
 
-/* Блок-приглашение (когда не авторизованы) */
 .guest-message {
   width: 100%;
   max-width: 596px;
@@ -196,7 +200,6 @@ body {
   transform: translateY(0);
 }
 
-/* Панель авторизации */
 .auth-panel {
   background: #ffffff;
   border: 1px solid #ccc;
@@ -204,7 +207,7 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   padding: 24px;
   width: 100%;
-  max-width: 360px; /* чтобы не растягивался на весь экран */
+  max-width: 360px;
   color: #333;
 }
 
@@ -221,7 +224,6 @@ body {
   text-align: center;
 }
 
-/* Блок с полями — чтобы они стояли друг под другом и не разъезжались */
 .auth-fields {
   display: flex;
   flex-direction: column;
@@ -234,7 +236,7 @@ body {
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 15px;
-  box-sizing: border-box; /* чтобы padding не увеличивал ширину */
+  box-sizing: border-box;
 }
 
 .auth-input:focus {
@@ -259,7 +261,6 @@ body {
   background-color: #0056b3;
 }
 
-/* Кнопка-триггер в блоке «Гость» — чуть компактнее */
 .guest-action-btn {
   padding: 8px 14px;
   font-size: 13px;
@@ -279,7 +280,6 @@ body {
   backdrop-filter: blur(4px);
 }
 
-/* Окно */
 .modal-window {
   background: #2b2b2b;
   border: 1px solid #444;
@@ -297,7 +297,6 @@ body {
   to { transform: translateY(0); }
 }
 
-/* Кнопка закрытия */
 .close-btn {
   position: absolute;
   top: 12px;
@@ -313,7 +312,119 @@ body {
 }
 .close-btn:hover { color: #fff; }
 
-/* Адаптив: на очень узких экранах уменьшаем окно */
 @media (max-width: 400px) {
   .modal-window { padding: 16px; }
+}
+
+.comments--hidden {
+  display: none !important;
+}
+
+.guest-message {
+  width: 596px;
+  box-sizing: border-box;
+  background: rgba(53, 53, 53, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 32px;
+  text-align: center;
+  color: #ccc;
+  margin-top: 24px;
+}
+
+.guest-text {
+  margin: 0;
+  font-size: 18px;
+}
+
+.guest-link {
+  color: #bcec30;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.guest-link:hover {
+  opacity: 0.8;
+}
+
+.auth-screen {
+  width: 596px;
+  box-sizing: border-box;
+  background: radial-gradient(75.42% 75.42% at 50% 42.37%,
+      rgba(53, 53, 53, 0) 22.92%,
+      #7334ea 100%);
+  border-radius: 20px;
+  padding: 40px;
+  margin-top: 24px;
+  color: #fff;
+}
+
+.auth-screen h3 {
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.auth-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #bcec30;
+}
+
+.auth-btn.submit-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #bcec30;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+.auth-btn.submit-btn:hover {
+  opacity: 0.9;
+}
+
+.status {
+  margin-top: 12px;
+  font-size: 13px;
+  text-align: center;
+  min-height: 18px;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.auth-back {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.logout-btn {
+  margin: 20px auto 0;
+  padding: 10px 20px;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
 }
