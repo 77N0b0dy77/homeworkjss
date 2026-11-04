@@ -1,4 +1,9 @@
-import { fetchComments, sendCommentToApi } from "./api.js";
+import {
+  fetchComments,
+  sendCommentToApi,
+  toggleLikeApi,
+  deleteCommentApi
+} from "./api.js";
 import { loginUser, registerUser, isLoggedIn, clearToken, getToken } from "./auth.js";
 
 let _nameInput = null;
@@ -15,7 +20,13 @@ function initHandlers(nameInput, textInput, addButton, commentsList, authUnderCo
   _commentsList = commentsList;
   _authScreen = authUnderComments;
 
+  // Подключаем обработчики комментариев
+  initCommentActions();
+
+  // Загружаем комментарии
   loadComments();
+
+  // Обновляем интерфейс авторизации
   updateAuthUI();
 }
 
@@ -37,43 +48,124 @@ async function loadComments() {
 
 function renderCommentsLocal(listElement, commentsData) {
   if (!listElement) return;
+
   listElement.innerHTML = "";
 
   if (!commentsData || commentsData.length === 0) {
-    listElement.innerHTML = "<li style='text-align:center; color:#777; padding:20px;'>Комментариев пока нет</li>";
+    listElement.innerHTML = "<li>Комментариев пока нет</li>";
     return;
   }
 
-  const safeText = (text) => {
-    if (!text) return "";
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  const safeText = (value) => {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    })[char]);
   };
 
-  commentsData.forEach(comment => {
-    const authorName = comment.author?.name || comment.name || "Пользователь";
+  commentsData.forEach((comment) => {
     const li = document.createElement("li");
+
     li.className = "comment";
+    li.dataset.id = comment.id;
+
+    const authorName =
+      comment.author?.name || comment.name || "Пользователь";
+
+    const date = formatDateFromISO(comment.date);
+
     li.innerHTML = `
       <div class="comment-header">
-        <span class="comment-author">${safeText(authorName)}</span>
-        <span class="comment-date">${formatDateFromISO(comment.date)}</span>
+        <span>${safeText(authorName)}</span>
+        <span>${safeText(date)}</span>
       </div>
+
       <div class="comment-body">
         <div class="comment-text">${safeText(comment.text)}</div>
       </div>
+
       <div class="comment-footer">
         <div class="likes">
-          <span class="likes-counter">${comment.likes || 0}</span>
-          <button class="like-button" aria-label="Нравится"></button>
+          <span class="likes-counter">
+            ${Number(comment.likes) || 0}
+          </span>
+
+          <button
+            type="button"
+            class="like-button ${comment.isLiked ? "-active-like" : ""}"
+            aria-label="Поставить или убрать лайк"
+          ></button>
         </div>
       </div>
     `;
+
     listElement.appendChild(li);
+  });
+}
+
+function initCommentActions() {
+  if (!_commentsList) return;
+
+  if (_commentsList.dataset.actionsInitialized === "true") {
+    return;
+  }
+
+  _commentsList.dataset.actionsInitialized = "true";
+
+  _commentsList.addEventListener("click", async (event) => {
+    const commentElement = event.target.closest(".comment");
+
+    if (!commentElement) return;
+
+    const commentId = commentElement.dataset.id;
+
+    // ЛАЙК
+    const likeButton = event.target.closest(".like-button");
+
+    if (likeButton) {
+      if (likeButton.disabled) return;
+
+      likeButton.disabled = true;
+
+      try {
+        const data = await toggleLikeApi(commentId);
+        const result = data.result;
+
+        const counter = commentElement.querySelector(".likes-counter");
+
+        counter.textContent = result.likes;
+
+        likeButton.classList.toggle(
+          "-active-like",
+          result.isLiked
+        );
+
+      } catch (error) {
+        alert("Не удалось поставить лайк: " + error.message);
+      } finally {
+        likeButton.disabled = false;
+      }
+
+      return;
+    }
+
+    // ЦИТИРОВАНИЕ ПРИ НАЖАТИИ НА КОММЕНТАРИЙ
+    const commentText = commentElement.querySelector(".comment-text");
+
+    if (commentText && _textInput) {
+      const quote = commentText.textContent.trim();
+
+      _textInput.value = `> ${quote}\n\n`;
+      _textInput.focus();
+
+      _textInput.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    }
   });
 }
 

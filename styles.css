@@ -428,3 +428,54 @@ body {
   border-radius: 12px;
   cursor: pointer;
 }
+
+.comment-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.quote-button {
+  background: transparent;
+  color: #bcec30;
+  border: 1px solid #bcec30;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.quote-button:hover {
+  background: rgba(188, 236, 48, 0.1);
+}
+
+.like-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.comment {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.comment:hover {
+  transform: translateY(-2px);
+}
+
+.comment .like-button {
+  cursor: pointer;
+}
+
+.comment {
+  cursor: pointer;
+}
+
+.comment .like-button {
+  cursor: pointer;
+}
+
+.comment:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}

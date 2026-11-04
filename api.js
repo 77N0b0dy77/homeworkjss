@@ -1,69 +1,95 @@
 const PERSONAL_KEY = "ivan-dmitriev";
 const API_BASE = `https://wedev-api.sky.pro/api/v2/${PERSONAL_KEY}`;
 
-export async function fetchComments() {
-  const url = `${API_BASE}/comments`;
-  const res = await fetch(url);
-  
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Ошибка загрузки комментариев: ${res.status} ${text.slice(0, 100)}`);
+async function request(url, options = {}) {
+  const res = await fetch(url, options);
+  const text = await res.text();
+
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = {};
   }
-  
-  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(
+      data.message || data.error || `Ошибка сервера: ${res.status}`
+    );
+  }
+
+  return data;
+}
+
+// Получение комментариев
+export async function fetchComments() {
+  const data = await request(`${API_BASE}/comments`);
   return data.comments || [];
 }
 
+// Добавление комментария
 export async function sendCommentToApi(text, name) {
   const token = localStorage.getItem("auth_token");
-  
+
   if (!token) {
-    throw new Error("Вы не авторизованы. Пожалуйста, войдите в систему.");
+    throw new Error("Необходимо авторизоваться");
   }
 
   const cleanText = (text || "").trim();
   const cleanName = (name || "").trim();
 
   if (cleanText.length < 3) {
-    throw new Error("Комментарий должен быть не короче 3 символов.");
+    throw new Error("Комментарий должен содержать минимум 3 символа");
   }
+
   if (!cleanName) {
-    throw new Error("Имя пользователя не может быть пустым.");
+    throw new Error("Имя пользователя не может быть пустым");
   }
 
-  const payload = {
-    text: cleanText,
-    name: cleanName,
-  };
-
-  const url = `${API_BASE}/comments`;
-
-  const res = await fetch(url, {
+  return await request(`${API_BASE}/comments`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      text: cleanText,
+      name: cleanName,
+    }),
   });
+}
 
-  let errorMessage = `Ошибка сервера: ${res.status}`;
-  let responseData;
+// Переключение лайка
+export async function toggleLikeApi(commentId) {
+  const token = localStorage.getItem("auth_token");
 
-  // Читаем ответ только ОДИН раз
-  try {
-    responseData = await res.json();
-    errorMessage = responseData.message || responseData.error || responseData.msg || errorMessage;
-  } catch (e) {
-    const textBody = await res.text().catch(() => "");
-    if (textBody) {
-      errorMessage += " " + textBody.slice(0, 200);
+  if (!token) {
+    throw new Error("Для лайка необходимо авторизоваться");
+  }
+
+  return await request(
+    `${API_BASE}/comments/${commentId}/toggle-like`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     }
+  );
+}
+
+// Удаление комментария
+export async function deleteCommentApi(commentId) {
+  const token = localStorage.getItem("auth_token");
+
+  if (!token) {
+    throw new Error("Для удаления необходимо авторизоваться");
   }
 
-  if (!res.ok) {
-    throw new Error(errorMessage);
-  }
-
-  return responseData || {};
+  return await request(`${API_BASE}/comments/${commentId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 }
